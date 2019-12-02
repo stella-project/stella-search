@@ -1,6 +1,8 @@
 # STELLA Search
 
-A minimalistic search interface that connects to the STELLA infrastructure. Queries are conducted to the [STELLA app](https://github.com/stella-project/stella-app) and results will be returned.
+A minimalistic search interface that connects to the STELLA infrastructure. 
+Queries are conducted to the [STELLA app](https://github.com/stella-project/stella-app) (make sure it is running) and results will be returned. 
+This example works best with the [elastic-wapo](https://github.com/stella-project/stella-app/tree/elastic-wapo) branch.
 
 ## Setup
 
