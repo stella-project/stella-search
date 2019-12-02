@@ -16,7 +16,7 @@
                 <h5 class="mb-1">{{ result['title'] }}</h5>
                 <small class="text-muted">{{ result['type'] }}</small>
             </div>
-            <p class="mb-1">{{ result['text'][:200] }}</p>
+            <p class="mb-1">{{ result['text'][:200] + '...' }}</p>
             <small class="text-muted">{{ result['source'] }}</small>
         </a>
     {% endfor %}
