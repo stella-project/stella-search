@@ -21,4 +21,4 @@ pip install -r requirements.txt
 python app.py
 ```
 
-4. Visit [http://127.0.0.1:5000/](http://127.0.0.1:5000/) and enter a query
+4. Visit [http://127.0.0.1:5000/](http://127.0.0.1:5000/) and enter a query. The sample data @[elastic-wapo](https://github.com/stella-project/stella-app/tree/elastic-wapo) is taken from [Pitchfork reviews](https://www.kaggle.com/nolanbconaway/pitchfork-data/data), this means documents contain text related to music. Type something like `singer`, `guitar`, or `drums`.
