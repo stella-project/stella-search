@@ -31,6 +31,16 @@ def index():
 
     return render_template('index.html', form=form, results=results)
 
+@app.route('/detail/<string:doc_id>', methods=['GET'])
+def detail(doc_id):
+    
+    
+    req = requests.get("http://0.0.0.0/stella/api/v1/recommend_dataset/" + doc_id).json()
+    print(req.values())
+    results = list(req.values())
+    
+    return render_template('detail.html', results=req)
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

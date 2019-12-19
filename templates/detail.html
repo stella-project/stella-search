@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}STELLA search{% endblock %}
+
+{% block page_content %}
+<div class="mx-auto" style="margin: 0 auto; width: 500px;">
+
+</div>
+{% if results %}
+<h3>recommandation for item {{results.target_items}} by system {{results.container}}</h3>
+    <div style="padding-top: 25px;">
+    <ul class="list-group">
+    {% for key in results.similar_items %}
+      <h5> {{key}} </h5>
+     
+    {% endfor %}
+    </ul>
+    </div>
+{% endif %}
+{% endblock %}
