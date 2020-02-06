@@ -1,21 +1,51 @@
+
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
-
+.header {
+    cursor:pointer;
+}
+.contentList
+{
+    display:none;
+}
 {% block title %}STELLA search{% endblock %}
-
 {% block page_content %}
+
 <div class="mx-auto" style="margin: 0 auto; width: 500px;">
 
 </div>
 {% if results %}
-<h3>recommandation for item {{results.target_items}} by system {{results.container}}</h3>
+<h3>Recommanded datasets for The publication "{{results.target_items}}" by the container {{results.container}}</h3>
     <div style="padding-top: 25px;">
-    <ul class="list-group">
+	    <ul class="list-group">
     {% for key in results.similar_items %}
-      <h5> {{key}} </h5>
-     
+	        <a class="list-group-item list-group-item-action flex-column align-items-start">
+            <div class="d-flex w-100 justify-content-between">
+            <div>
+			<div onmouseover="headerClicked(this);" onmouseleave="headerClickedUp(this);">
+			<ul>
+            <li class="header"> <b>{{id_results[key]['Title']}}</b> </li>
+			</ul>
+			</div>
+			<ul class="contentList">
+            <li><small class="text-muted" > <b>Type:</b> {{ id_results[key]['Type'] }}</small></li>
+			<li><small class="text-muted"> <b>Id:</b> {{ id_results[key]['Id'] }}</small></li>
+			<li><small class="text-muted"> <b>Publisher:</b> {{ id_results[key]['Publisher'] }}</small></li>
+			<li><small class="text-muted"> <b>Date:</b> {{ id_results[key]['Date'] }}</small></li>
+			</ul>
+            </div>
+			</div>
+			</a>
     {% endfor %}
-    </ul>
-    </div>
+	</ul>
+	</div>
+	
 {% endif %}
+<!--<script>
+function headerClicked(headerObj) {            $(headerObj).parent().find('.contentList').slideDown(10);
+	}
+function headerClickedUp(headerObj) {            $(headerObj).parent().find('.contentList').slideUp(10);
+	}
+</script>-->
 {% endblock %}
+
