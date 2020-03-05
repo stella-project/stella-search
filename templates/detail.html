@@ -9,67 +9,35 @@
     display:none;
 }
 {% block title %}STELLA search{% endblock %}
+
 {% block page_content %}
 
 <div class="mx-auto" style="margin: 0 auto; width: 500px;">
 
 </div>
-{% if results.container == "tf-idf-container" %}
 <h3>Recommanded datasets for The publication "{{results.target_items}}" by the container {{results.container}}</h3>
     <div style="padding-top: 25px;">
 	    <ul class="list-group">
-    {% for key in results.similar_items %}
+        {% for item in results.similar_items %}
 	        <a class="list-group-item list-group-item-action flex-column align-items-start">
             <div class="d-flex w-100 justify-content-between">
             <div>
 			<div onmouseover="headerClicked(this);" onmouseleave="headerClickedUp(this);">
 			<ul>
-            <li class="header"> <b>{{id_results[key]['Title']}}</b> </li>
+            <li class="header"> <b>{{id_results[item["id"]]['Title']}}</b> </li>
 			</ul>
 			</div>
 			<ul class="contentList">
-            <li><small class="text-muted" > <b>Type:</b> {{ id_results[key]['Type'] }}</small></li>
-			<li><small class="text-muted"> <b>Id:</b> {{ id_results[key]['Id'] }}</small></li>
-			<li><small class="text-muted"> <b>Publisher:</b> {{ id_results[key]['Publisher'] }}</small></li>
-			<li><small class="text-muted"> <b>Date:</b> {{ id_results[key]['Date'] }}</small></li>
+            <li><small class="text-muted" > <b>Type:</b> {{ id_results[item["id"]]['Type'] }}</small></li>
+			<li><small class="text-muted"> <b>Id:</b> {{ id_results[item["id"]]['Id'] }}</small></li>
+			<li><small class="text-muted"> <b>Publisher:</b> {{ id_results[item["id"]]['Publisher'] }}</small></li>
+			<li><small class="text-muted"> <b>Date:</b> {{ id_results[item["id"]]['Date'] }}</small></li>
 			</ul>
             </div>
 			</div>
 			</a>
     {% endfor %}
-	</ul>
+		</ul>
 	</div>
-{% else %}
-<h3>Recommanded datasets for The publication "{{results.target_items}}" by the container {{results.container}}</h3>
-    <div style="padding-top: 25px;">
-	    <ul class="list-group">
-    {% for key in range(results.similar_items| length) %}
-	        <a class="list-group-item list-group-item-action flex-column align-items-start">
-            <div class="d-flex w-100 justify-content-between">
-            <div>
-			<div onmouseover="headerClicked(this);" onmouseleave="headerClickedUp(this);">
-			<ul>
-            <li class="header"> <b>{{id_results[results.similar_items[key][0]]['Title']}}</b> </li>
-			</ul>
-			</div>
-			<ul class="contentList">
-            <li><small class="text-muted" > <b>Type:</b> {{ id_results[results.similar_items[key][0]]['Type'] }}</small></li>
-			<li><small class="text-muted"> <b>Id:</b> {{ id_results[results.similar_items[key][0]]['Id'] }}</small></li>
-			<li><small class="text-muted"> <b>Publisher:</b> {{ id_results[results.similar_items[key][0]]['Publisher'] }}</small></li>
-			<li><small class="text-muted"> <b>Date:</b> {{ id_results[results.similar_items[key][0]]['Date'] }}</small></li>
-			</ul>
-            </div>
-			</div>
-			</a>
-    {% endfor %}
-	</ul>
-	</div>	
-{% endif %}
-<!--<script>
-function headerClicked(headerObj) {            $(headerObj).parent().find('.contentList').slideDown(10);
-	}
-function headerClickedUp(headerObj) {            $(headerObj).parent().find('.contentList').slideUp(10);
-	}
-</script>-->
-{% endblock %}
 
+{% endblock %}
