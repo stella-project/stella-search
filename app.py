@@ -8,7 +8,7 @@ import requests
 import json
 import random
 
-JL_PATH = './data/index/gesis.jsonl'
+JL_PATH = './data/index'
 
 
 def index_data(jl_path):
@@ -99,7 +99,9 @@ def detail_pubmed(doc_id):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    corpus = index_data(JL_PATH)
+    for file in os.listdir(JL_PATH):
+        if file.endswith(".jsonl"):
+            corpus = index_data(os.path.join(JL_PATH, file))
     if port == 5000:
         app.debug = True
 
