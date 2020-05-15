@@ -8,7 +8,7 @@ import requests
 import json
 import random
 
-JL_PATH = 'data/livivo/pubmed_2015_2016.jsonl'
+JL_PATH = './data/index'
 
 
 def index_data(jl_path):
@@ -16,20 +16,13 @@ def index_data(jl_path):
     with open(jl_path) as jl:
         for line in jl:
             j = json.loads(line)
-            corpus[j['DBRECORDID']] = json.loads(line)
+            corpus[j['id']] = json.loads(line)
+
     return corpus
 
 
 def doc_list(id_list):
-    dl = []
-    for id in id_list:
-        doc = corpus.get(id)
-        dl.append({'title': doc['TITLE'][0],
-                    'type': doc['DBDOCTYPE'][0],
-                    'id': id,
-                    'source': doc['SOURCE'][0]})
-
-    return dl
+    return [corpus.get(id) for id in id_list]
 
 
 def single_doc(id):
@@ -37,11 +30,11 @@ def single_doc(id):
     random_ids = random.choices(list(corpus.keys()), k=4)
     recommendations = doc_list(random_ids)
 
-    return {'title': doc['TITLE'][0],
-            'type': doc['DBDOCTYPE'][0],
+    return {'title': doc['title'],
+            'type': doc['type'],
             'id': id,
-            'source': doc['SOURCE'][0],
-            'abstract': (doc.get('ABSTRACT')[0] if doc.get('ABSTRACT') is not None else 'no abstract'),
+            'source': doc['publisher'],
+            'abstract': doc['abstract'],
             'similar_items': recommendations}
 
 
@@ -106,7 +99,9 @@ def detail_pubmed(doc_id):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    corpus = index_data(JL_PATH)
+    for file in os.listdir(JL_PATH):
+        if file.endswith(".jsonl"):
+            corpus = index_data(os.path.join(JL_PATH, file))
     if port == 5000:
         app.debug = True
 
