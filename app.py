@@ -8,7 +8,7 @@ import requests
 import json
 import random
 
-JL_PATH = 'data/pubmed_2015_2016.jsonl'
+JL_PATH = 'data/livivo/pubmed_2015_2016.jsonl'
 
 
 def index_data(jl_path):
@@ -25,9 +25,9 @@ def doc_list(id_list):
     for id in id_list:
         doc = corpus.get(id)
         dl.append({'title': doc['TITLE'][0],
-                         'type': doc['DBDOCTYPE'][0],
-                         'id': id,
-                         'source': doc['SOURCE'][0]})
+                    'type': doc['DBDOCTYPE'][0],
+                    'id': id,
+                    'source': doc['SOURCE'][0]})
 
     return dl
 
