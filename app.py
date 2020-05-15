@@ -7,49 +7,22 @@ import os
 import requests
 import json
 import random
-import ast
 
-SITE = 'GESIS'  # 'GESIS' or 'LIVIVO'
-JL_PATH = './data/livivo/pubmed_2015_2016.jsonl'
-GESIS_DATA_PUB = './data/lini_dic_100_samp_Publication-ALL.json'
+JL_PATH = './data/index/gesis.jsonl'
 
 
 def index_data(jl_path):
     corpus = {}
-    if SITE == 'LIVIVO':
-        with open(jl_path) as jl:
-            for line in jl:
-                j = json.loads(line)
-                corpus[j['DBRECORDID']] = json.loads(line)
-
-    if SITE == 'GESIS':
-        with open(jl_path) as jl:
-            for line in jl:
-                j = ast.literal_eval(line)
-                # j = json.loads(line.replace("\'", "\""))
-                corpus[j['id']] = j
+    with open(jl_path) as jl:
+        for line in jl:
+            j = json.loads(line)
+            corpus[j['id']] = json.loads(line)
 
     return corpus
 
 
 def doc_list(id_list):
-    dl = []
-    if SITE == 'LIVIVO':
-        for id in id_list:
-            doc = corpus.get(id)
-            dl.append({'title': doc['TITLE'][0],
-                       'type': doc['DBDOCTYPE'][0],
-                       'id': id,
-                       'source': doc['SOURCE'][0]})
-    if SITE == 'GESIS':
-        for id in id_list:
-            doc = corpus.get(id)
-            dl.append({'title': doc['title'],
-                       'type': doc['type'],
-                       'id': id,
-                       'source': doc['data_source']})
-
-    return dl
+    return [corpus.get(id) for id in id_list]
 
 
 def single_doc(id):
@@ -57,21 +30,12 @@ def single_doc(id):
     random_ids = random.choices(list(corpus.keys()), k=4)
     recommendations = doc_list(random_ids)
 
-    if SITE == 'LIVIVO':
-        return {'title': doc['TITLE'][0],
-                'type': doc['DBDOCTYPE'][0],
-                'id': id,
-                'source': doc['SOURCE'][0],
-                'abstract': (doc.get('ABSTRACT')[0] if doc.get('ABSTRACT') is not None else 'no abstract'),
-                'similar_items': recommendations}
-
-    if SITE == 'GESIS':
-        return {'title': doc['title'],
-                'type': doc['type'],
-                'id': id,
-                'source': doc['data_source'],
-                'abstract': (doc.get('abstract') if doc.get('abstract') is not None else 'no abstract'),
-                'similar_items': recommendations}
+    return {'title': doc['title'],
+            'type': doc['type'],
+            'id': id,
+            'source': doc['publisher'],
+            'abstract': doc['abstract'],
+            'similar_items': recommendations}
 
 
 class SearchForm(FlaskForm):
@@ -102,10 +66,8 @@ def index():
 
         results = doc_list(id_list)
 
-    if SITE == 'LIVIVO':
-        return render_template('index_pubmed.html', form=form, results=results)
-    if SITE == 'GESIS':
-        return render_template('index.html', form=form, results=results)
+    # return render_template('index.html', form=form, results=results)
+    return render_template('index_pubmed.html', form=form, results=results)
 
 
 def item_details(id):
@@ -115,20 +77,18 @@ def item_details(id):
 
 @app.route('/detail/<string:doc_id>', methods=['GET'])
 def detail(doc_id):
-    # results = requests.get(" http://0.0.0.0/stella/api/v1/recommend_dataset/" + doc_id).json()
-    # l = {}
-    # for i in range(len(results['similar_items'])):
-    #     key = results['similar_items'][i]["id"]
-    #     detail = item_details(key)
-    #     if detail["type"] == "research_data" :
-    #         if "publisher" not in detail:
-    #             l[key] = {"Title": detail["title"], "Id": detail["id"], "Date": detail["date"],"Publisher": "Unidentified", "Type": detail["type"] }
-    #         else :
-    #             l[key] = {"Title": detail["title"], "Id": detail["id"], "Date": detail["date"],"Publisher": detail["publisher"], "Type": detail["type"] }
-    #
-    # return render_template('detail.html', results=results, id_results = l , query = doc_id)
-    doc = single_doc(doc_id)
-    return render_template('detail_pubmed.html', result=doc)
+    results = requests.get(" http://0.0.0.0/stella/api/v1/recommend_dataset/" + doc_id).json()
+    l = {}
+    for i in range(len(results['similar_items'])):
+        key = results['similar_items'][i]["id"]
+        detail = item_details(key)
+        if detail["type"] == "research_data" :
+            if "publisher" not in detail:
+                l[key] = {"Title": detail["title"], "Id": detail["id"], "Date": detail["date"],"Publisher": "Unidentified", "Type": detail["type"] }
+            else :
+                l[key] = {"Title": detail["title"], "Id": detail["id"], "Date": detail["date"],"Publisher": detail["publisher"], "Type": detail["type"] }
+
+    return render_template('detail.html', results=results, id_results = l , query = doc_id)
 
 
 @app.route('/detail_pubmed/<string:doc_id>', methods=['GET'])
@@ -139,8 +99,7 @@ def detail_pubmed(doc_id):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    # corpus = index_data(JL_PATH)
-    corpus = index_data(GESIS_DATA_PUB)
+    corpus = index_data(JL_PATH)
     if port == 5000:
         app.debug = True
 
