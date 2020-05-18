@@ -28,9 +28,9 @@ def doc_list(id_list):
 
 def single_doc(id):
     doc = corpus.get(id)
-    random_ids = random.choices(list(corpus.keys()), k=4)
-    # req = requests.get("http://0.0.0.0:8080/stella/api/v1/recommendation/publications?item_id=" + id).json()
-    recommendations = doc_list(random_ids)
+    # random_ids = random.choices(list(corpus.keys()), k=4)
+    req = requests.get("http://0.0.0.0:8080/stella/api/v1/recommendation/publications?item_id=" + id).json()
+    recommendations = doc_list([v['docid'] for k, v in req.items()])
 
     return {'title': doc['title'],
             'type': doc['type'],
@@ -58,23 +58,15 @@ def index():
     if form.validate_on_submit():
         query = form.query.data
         form.query.data = query
-
         req = requests.get("http://0.0.0.0:8080/stella/api/v1/ranking?query=" + query).json()
-
-        # results = list(req.values())
-
         result_list = req.values()
         id_list = [doc['docid'] for doc in result_list]
-
         results = doc_list(id_list)
 
     return render_template('index.html', form=form, results=results)
-    # return render_template('index_pubmed.html', form=form, results=results)
 
 
 def item_details(id):
-    # id_req = requests.get("http://193.175.238.15:5555/api/items/" + id).json()
-    # return(id_req)
     return {"title": "title goes here",
             "id": id,
             "date": "date goes here",
@@ -109,12 +101,6 @@ def detail(doc_id):
         raise e
 
     return render_template('detail.html', result=doc, similar_items=l, query=doc_id)
-
-
-@app.route('/detail_pubmed/<string:doc_id>', methods=['GET'])
-def detail_pubmed(doc_id):
-    doc = single_doc(doc_id)
-    return render_template('detail_pubmed.html', result=doc)
 
 
 if __name__ == '__main__':
