@@ -13,25 +13,43 @@
 {% block page_content %}
 
 <div class="mx-auto" style="margin: 0 auto; width: 500px;">
-
+<h2>{{result['title']}}</h2>
+<p>{{result['abstract']}}</p>
 </div>
-<h3>Recommanded datasets for The publication "{{results.target_items}}" by the container {{results.container}}</h3>
+<h3>Document recommendations based on this article</h3>
+    {% for item in result.similar_items %}
+	        <a class="list-group-item list-group-item-action flex-column align-items-start" href={{item['id'] }}>
+            <div class="d-flex w-100 justify-content-between">
+            <div>
+			<div onmouseover="headerClicked(this);" onmouseleave="headerClickedUp(this);">
+			<ul>
+            <li class="header"> <b>{{item['title']}}</b>  </li>
+			</ul>
+			</div>
+			<ul class="contentList">
+            <li><small class="text-muted" > <b>Type:</b> {{ item['type'] }}</small></li>
+			</ul>
+            </div>
+			</div>
+			</a>
+    {% endfor %}
+<h3>Dataset recommendations based on this article</h3>
     <div style="padding-top: 25px;">
 	    <ul class="list-group">
-        {% for item in results.similar_items %}
+        {% for item in similar_items %}
 	        <a class="list-group-item list-group-item-action flex-column align-items-start">
             <div class="d-flex w-100 justify-content-between">
             <div>
 			<div onmouseover="headerClicked(this);" onmouseleave="headerClickedUp(this);">
 			<ul>
-            <li class="header"> <b>{{id_results[item["id"]]['Title']}}</b> </li>
+            <li class="header"> <b>{{item['Title']}}</b> </li>
 			</ul>
 			</div>
 			<ul class="contentList">
-            <li><small class="text-muted" > <b>Type:</b> {{ id_results[item["id"]]['Type'] }}</small></li>
-			<li><small class="text-muted"> <b>Id:</b> {{ id_results[item["id"]]['Id'] }}</small></li>
-			<li><small class="text-muted"> <b>Publisher:</b> {{ id_results[item["id"]]['Publisher'] }}</small></li>
-			<li><small class="text-muted"> <b>Date:</b> {{ id_results[item["id"]]['Date'] }}</small></li>
+            <li><small class="text-muted" > <b>Type:</b> {{ item['Type'] }}</small></li>
+			<li><small class="text-muted"> <b>Id:</b> {{ item['Id'] }}</small></li>
+			<li><small class="text-muted"> <b>Publisher:</b> {{ item['Publisher'] }}</small></li>
+			<li><small class="text-muted"> <b>Date:</b> {{ item['Date'] }}</small></li>
 			</ul>
             </div>
 			</div>
