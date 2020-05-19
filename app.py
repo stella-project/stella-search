@@ -9,6 +9,7 @@ import json
 import random
 import ast
 
+STELLA_APP_API = 'http://0.0.0.0:8080/stella/api/v1/'
 JL_PATH = './data/index'
 
 
@@ -29,14 +30,14 @@ def doc_list(id_list):
 def single_doc(id):
     doc = corpus.get(id)
     # random_ids = random.choices(list(corpus.keys()), k=4)
-    req = requests.get("http://0.0.0.0:8080/stella/api/v1/recommendation/publications?item_id=" + id).json()
+    req = requests.get(STELLA_APP_API + "recommendation/publications?item_id=" + id).json()
     recommendations = doc_list([v['docid'] for k, v in req.items()])
 
     return {'title': doc['title'],
             'type': doc['type'],
             'id': id,
             'source': doc['publisher'],
-            'abstract': doc['abstract'],
+            'abstract': (doc['abstract'][0] if type(doc['abstract']) is list else doc['abstract']),
             'similar_items': recommendations}
 
 
@@ -58,10 +59,30 @@ def index():
     if form.validate_on_submit():
         query = form.query.data
         form.query.data = query
-        req = requests.get("http://0.0.0.0:8080/stella/api/v1/ranking?query=" + query).json()
-        result_list = req.values()
+        req = requests.get(STELLA_APP_API + "ranking?query=" + query).json()
+        result_list = req.get('body').values()
         id_list = [doc['docid'] for doc in result_list]
         results = doc_list(id_list)
+
+        # send feedback directly after the ranking is retrieved
+        session_id = req.get('header').get('session')
+
+        rand_int = random.randint(1,len(req.get('body')))
+        click_dict = {}
+        for key, val in req.get('body').items():
+            if key == str(rand_int):
+                req.get('body').get(key).update({'clicked': True})
+            else:
+                req.get('body').get(key).update({'clicked': False})
+
+    click_dict = req.get('body')
+
+    # payload = {
+    #     'start': session_start_date.strftime("%Y-%m-%d %H:%M:%S"),
+    #     'end': session_end_date.strftime("%Y-%m-%d %H:%M:%S"),
+    #     'interleave': True,
+    #     'clicks': json.dumps(click_dict)
+    # }
 
     return render_template('index.html', form=form, results=results)
 
@@ -79,7 +100,7 @@ def detail(doc_id):
     l = []
     doc = single_doc(doc_id)
     try:
-        results = requests.get("http://0.0.0.0:8080/stella/api/v1/recommendation/datasets?item_id=" + doc_id).json()
+        results = requests.get(STELLA_APP_API + "recommendation/datasets?item_id=" + doc_id).json()
 
         for k, v in results.items():
             id = v.get('docid')
