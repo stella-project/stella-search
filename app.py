@@ -3,7 +3,7 @@ from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
-import os 
+import os
 import requests
 import json
 import random
@@ -66,23 +66,38 @@ def index():
 
         # send feedback directly after the ranking is retrieved
         session_id = req.get('header').get('session')
+        ranking_id = req.get('header').get('ranking')
 
-        rand_int = random.randint(1,len(req.get('body')))
-        click_dict = {}
-        for key, val in req.get('body').items():
-            if key == str(rand_int):
-                req.get('body').get(key).update({'clicked': True})
-            else:
-                req.get('body').get(key).update({'clicked': False})
+        click_dict = req.get('body')
+        if len(click_dict) > 0:
+            import datetime
+            session_start_date = datetime.datetime.now()
+            session_end_date = session_start_date + datetime.timedelta(0, random.randint(10, 3000))
+            rand_int = random.randint(1, len(click_dict))
+            random_clicks = random.sample(range(1, len(click_dict)), random.randint(1, 3))
+            random.sample(range(1, 10), random.randint(1, 9))
+            for key, val in click_dict.items():
+                if int(key) in random_clicks:
+                    click_dict.update({key: {'doc_id': req.get('body').get(key).get('docid'),
+                                             'system': req.get('body').get(key).get('type'),
+                                             'clicked': True,
+                                             'date': session_start_date.strftime("%Y-%m-%d %H:%M:%S")}})
+                else:
+                    click_dict.update({key: {'doc_id': req.get('body').get(key).get('docid'),
+                                             'system': req.get('body').get(key).get('type'),
+                                             'clicked': False,
+                                             'date': None}})
 
-    click_dict = req.get('body')
+            payload = {
+                'start': session_start_date.strftime("%Y-%m-%d %H:%M:%S"),
+                'end': session_end_date.strftime("%Y-%m-%d %H:%M:%S"),
+                'interleave': True,
+                'clicks': json.dumps(click_dict)
+            }
 
-    # payload = {
-    #     'start': session_start_date.strftime("%Y-%m-%d %H:%M:%S"),
-    #     'end': session_end_date.strftime("%Y-%m-%d %H:%M:%S"),
-    #     'interleave': True,
-    #     'clicks': json.dumps(click_dict)
-    # }
+            r = requests.post(STELLA_APP_API + 'ranking/' + str(ranking_id) + '/feedback', data=payload)
+            r_json = json.loads(r.text)
+            # print(r_json, ranking_id)
 
     return render_template('index.html', form=form, results=results)
 
