@@ -3,11 +3,13 @@ from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
-import os 
+import os
 import requests
 import json
 import random
+import ast
 
+STELLA_APP_API = 'http://0.0.0.0:8080/stella/api/v1/'
 JL_PATH = './data/index'
 
 
@@ -27,15 +29,16 @@ def doc_list(id_list):
 
 def single_doc(id):
     doc = corpus.get(id)
-    random_ids = random.choices(list(corpus.keys()), k=4)
-    recommendations = doc_list(random_ids)
+    # random_ids = random.choices(list(corpus.keys()), k=4)
+    req = requests.get(STELLA_APP_API + "recommendation/publications?item_id=" + id).json()
+    recommendations = doc_list([v['docid'] for k, v in req.items()])
 
     return {'title': doc['title'],
             'type': doc['type'],
             'id': id,
             'source': doc['publisher'],
-            'abstract': doc['abstract'],
-            'similar_items': recommendations}
+            'abstract': (doc['abstract'][0] if type(doc['abstract']) is list else doc['abstract'])[:500] + '...',
+            'similar_items': recommendations[:3]}
 
 
 class SearchForm(FlaskForm):
@@ -56,45 +59,84 @@ def index():
     if form.validate_on_submit():
         query = form.query.data
         form.query.data = query
-
-        req = requests.get("http://0.0.0.0:8080/stella/api/v1/ranking?query=" + query).json()
-
-        # results = list(req.values())
-
-        result_list = req.values()
+        req = requests.get(STELLA_APP_API + "ranking?query=" + query).json()
+        result_list = req.get('body').values()
         id_list = [doc['docid'] for doc in result_list]
-
         results = doc_list(id_list)
 
-    # return render_template('index.html', form=form, results=results)
-    return render_template('index_pubmed.html', form=form, results=results)
+        # send feedback directly after the ranking is retrieved
+        session_id = req.get('header').get('session')
+        ranking_id = req.get('header').get('ranking')
+
+        click_dict = req.get('body')
+        if len(click_dict) > 0:
+            import datetime
+            session_start_date = datetime.datetime.now()
+            session_end_date = session_start_date + datetime.timedelta(0, random.randint(10, 3000))
+            rand_int = random.randint(1, len(click_dict))
+            random_clicks = random.sample(range(1, len(click_dict)), random.randint(1, 3))
+            random.sample(range(1, 10), random.randint(1, 9))
+            for key, val in click_dict.items():
+                if int(key) in random_clicks:
+                    click_dict.update({key: {'doc_id': req.get('body').get(key).get('docid'),
+                                             'system': req.get('body').get(key).get('type'),
+                                             'clicked': True,
+                                             'date': session_start_date.strftime("%Y-%m-%d %H:%M:%S")}})
+                else:
+                    click_dict.update({key: {'doc_id': req.get('body').get(key).get('docid'),
+                                             'system': req.get('body').get(key).get('type'),
+                                             'clicked': False,
+                                             'date': None}})
+
+            payload = {
+                'start': session_start_date.strftime("%Y-%m-%d %H:%M:%S"),
+                'end': session_end_date.strftime("%Y-%m-%d %H:%M:%S"),
+                'interleave': True,
+                'clicks': json.dumps(click_dict)
+            }
+
+            r = requests.post(STELLA_APP_API + 'ranking/' + str(ranking_id) + '/feedback', data=payload)
+            r_json = json.loads(r.text)
+            # print(r_json, ranking_id)
+
+    return render_template('index.html', form=form, results=results)
 
 
 def item_details(id):
-    id_req = requests.get("http://193.175.238.15:5555/api/items/" + id).json()
-    return(id_req)
+    return {"title": "title goes here",
+            "id": id,
+            "date": "date goes here",
+            "publisher": "publisher goes here",
+            "type": "type goes here"}
 
 
 @app.route('/detail/<string:doc_id>', methods=['GET'])
 def detail(doc_id):
-    results = requests.get(" http://0.0.0.0/stella/api/v1/recommend_dataset/" + doc_id).json()
-    l = {}
-    for i in range(len(results['similar_items'])):
-        key = results['similar_items'][i]["id"]
-        detail = item_details(key)
-        if detail["type"] == "research_data" :
-            if "publisher" not in detail:
-                l[key] = {"Title": detail["title"], "Id": detail["id"], "Date": detail["date"],"Publisher": "Unidentified", "Type": detail["type"] }
-            else :
-                l[key] = {"Title": detail["title"], "Id": detail["id"], "Date": detail["date"],"Publisher": detail["publisher"], "Type": detail["type"] }
-
-    return render_template('detail.html', results=results, id_results = l , query = doc_id)
-
-
-@app.route('/detail_pubmed/<string:doc_id>', methods=['GET'])
-def detail_pubmed(doc_id):
+    l = []
     doc = single_doc(doc_id)
-    return render_template('detail_pubmed.html', result=doc)
+    try:
+        results = requests.get(STELLA_APP_API + "recommendation/datasets?item_id=" + doc_id).json()
+
+        for k, v in results.items():
+            id = v.get('docid')
+            detail = item_details(id)
+
+            if "publisher" not in detail:
+                l.append({"Title": detail["title"],
+                          "Id": detail["id"],
+                          "Date": detail["date"],
+                          "Publisher": "Unidentified",
+                          "Type": detail["type"]})
+            else:
+                l.append({"Title": detail["title"],
+                          "Id": detail["id"],
+                          "Date": detail["date"],
+                          "Publisher": detail["publisher"],
+                          "Type": detail["type"]})
+    except Exception as e:
+        raise e
+
+    return render_template('detail.html', result=doc, similar_items=l[:3], query=doc_id)
 
 
 if __name__ == '__main__':
