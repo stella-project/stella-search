@@ -37,8 +37,8 @@ def single_doc(id):
             'type': doc['type'],
             'id': id,
             'source': doc['publisher'],
-            'abstract': (doc['abstract'][0] if type(doc['abstract']) is list else doc['abstract']),
-            'similar_items': recommendations}
+            'abstract': (doc['abstract'][0] if type(doc['abstract']) is list else doc['abstract'])[:500] + '...',
+            'similar_items': recommendations[:3]}
 
 
 class SearchForm(FlaskForm):
@@ -136,7 +136,7 @@ def detail(doc_id):
     except Exception as e:
         raise e
 
-    return render_template('detail.html', result=doc, similar_items=l, query=doc_id)
+    return render_template('detail.html', result=doc, similar_items=l[:3], query=doc_id)
 
 
 if __name__ == '__main__':

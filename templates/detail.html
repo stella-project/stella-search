@@ -8,6 +8,13 @@
 {
     display:none;
 }
+
+hr.divide
+{
+  border: 10px solid green;
+  border-radius: 5px;
+}
+
 {% block title %}STELLA search{% endblock %}
 
 {% block page_content %}
@@ -16,6 +23,66 @@
 <h2>{{result['title']}}</h2>
 <p>{{result['abstract']}}</p>
 </div>
+
+<div class="well well-sm">
+<h3 style="text-align:center">Recommendations</h3>
+<div style="width: 100%; overflow: hidden;">
+    <div style="width: 600px; float: left; padding: 10px;">
+        <h4 style="text-align:center">Documents: </h4>
+        <div style="padding-top: 25px;">
+            <ul class="list-group">
+                {% for item in result.similar_items %}
+                        <a class="list-group-item list-group-item-action flex-column align-items-start" href={{item['id'] }}>
+                        <div class="d-flex w-100 justify-content-between">
+                        <div>
+                        <div onmouseover="headerClicked(this);" onmouseleave="headerClickedUp(this);">
+                        <ul>
+                        <li class="header"> <b>{{item['title']}}</b>  </li>
+                        </ul>
+                        </div>
+                        <ul class="contentList">
+                        <li><small class="text-muted" > <b>Type:</b> {{ item['type'] }}</small></li>
+                        </ul>
+                        </div>
+                        </div>
+                        </a>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div style="margin-left: 600px; padding: 10px;">
+        <h4 style="text-align:center">Datasets:</h4>
+        <div style="padding-top: 25px;">
+            <ul class="list-group">
+            {% for item in similar_items %}
+                <a class="list-group-item list-group-item-action flex-column align-items-start">
+                <div class="d-flex w-100 justify-content-between">
+                <div>
+                <div onmouseover="headerClicked(this);" onmouseleave="headerClickedUp(this);">
+                <ul>
+                    <li class="header"> <b>{{ item['Id'] }}</b> </li>
+                <!-- <li class="header"> <b>{{item['Title']}}</b> </li> -->
+                </ul>
+                </div>
+                <ul class="contentList">
+                    <li><small class="text-muted" > <b>Type:</b> dataset</small></li>
+                <!--
+                <li><small class="text-muted" > <b>Type:</b> {{ item['Type'] }}</small></li>
+                <li><small class="text-muted"> <b>Id:</b> {{ item['Id'] }}</small></li>
+                <li><small class="text-muted"> <b>Publisher:</b> {{ item['Publisher'] }}</small></li>
+                <li><small class="text-muted"> <b>Date:</b> {{ item['Date'] }}</small></li>
+                -->
+                </ul>
+                </div>
+                </div>
+                </a>
+            {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+<!--
 <h3>Document recommendations based on this article</h3>
     {% for item in result.similar_items %}
 	        <a class="list-group-item list-group-item-action flex-column align-items-start" href={{item['id'] }}>
@@ -57,5 +124,7 @@
     {% endfor %}
 		</ul>
 	</div>
+
+-->
 
 {% endblock %}
