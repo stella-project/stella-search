@@ -8,8 +8,9 @@ import requests
 import json
 import random
 import ast
+import datetime
 
-STELLA_APP_API = 'http://0.0.0.0:8080/stella/api/v1/'
+STELLA_APP_API = 'http://0.0.0.0:8000/stella/api/v1/'
 JL_PATH = './data/index'
 
 
@@ -31,8 +32,38 @@ def single_doc(id):
     doc = corpus.get(id)
     # random_ids = random.choices(list(corpus.keys()), k=4)
     req = requests.get(STELLA_APP_API + "recommendation/publications?item_id=" + id).json()
-    recommendations = doc_list([v['docid'] for k, v in req.items()])
+    recommendations = doc_list([v['docid'] for k, v in req.get('body').items()])
 
+    # send feedback for recommendation of publications
+    click_dict = req.get('body')
+    rec_id = req.get('header').get('recommendation')
+    if len(click_dict) > 0:
+        session_start_date = datetime.datetime.now()
+        session_end_date = session_start_date + datetime.timedelta(0, random.randint(10, 3000))
+        rand_int = random.randint(1, len(click_dict))
+        random_clicks = random.sample(range(1, len(click_dict)), random.randint(1, 3))
+        random.sample(range(1, 10), random.randint(1, 9))
+        for key, val in click_dict.items():
+            if int(key) in random_clicks:
+                click_dict.update({key: {'doc_id': req.get('body').get(key).get('docid'),
+                                         'system': req.get('body').get(key).get('type'),
+                                         'clicked': True,
+                                         'date': session_start_date.strftime("%Y-%m-%d %H:%M:%S")}})
+            else:
+                click_dict.update({key: {'doc_id': req.get('body').get(key).get('docid'),
+                                         'system': req.get('body').get(key).get('type'),
+                                         'clicked': False,
+                                         'date': None}})
+
+        payload = {
+            'start': session_start_date.strftime("%Y-%m-%d %H:%M:%S"),
+            'end': session_end_date.strftime("%Y-%m-%d %H:%M:%S"),
+            'interleave': True,
+            'clicks': json.dumps(click_dict)
+        }
+        req = requests.post(STELLA_APP_API + "recommendation/" + str(rec_id) + "/feedback", data=payload)
+
+    # return recommendations
     return {'title': doc['title'],
             'type': doc['type'],
             'id': id,
@@ -70,7 +101,6 @@ def index():
 
         click_dict = req.get('body')
         if len(click_dict) > 0:
-            import datetime
             session_start_date = datetime.datetime.now()
             session_end_date = session_start_date + datetime.timedelta(0, random.randint(10, 3000))
             rand_int = random.randint(1, len(click_dict))
@@ -115,9 +145,39 @@ def detail(doc_id):
     l = []
     doc = single_doc(doc_id)
     try:
+
         results = requests.get(STELLA_APP_API + "recommendation/datasets?item_id=" + doc_id).json()
 
-        for k, v in results.items():
+        # send feedback for recommendation of publications
+        click_dict = results.get('body')
+        rec_id = results.get('header').get('recommendation')
+        if len(click_dict) > 0:
+            session_start_date = datetime.datetime.now()
+            session_end_date = session_start_date + datetime.timedelta(0, random.randint(10, 3000))
+            rand_int = random.randint(1, len(click_dict))
+            random_clicks = random.sample(range(1, len(click_dict)), random.randint(1, 3))
+            random.sample(range(1, 10), random.randint(1, 9))
+            for key, val in click_dict.items():
+                if int(key) in random_clicks:
+                    click_dict.update({key: {'doc_id': results.get('body').get(key).get('docid'),
+                                             'system': results.get('body').get(key).get('type'),
+                                             'clicked': True,
+                                             'date': session_start_date.strftime("%Y-%m-%d %H:%M:%S")}})
+                else:
+                    click_dict.update({key: {'doc_id': results.get('body').get(key).get('docid'),
+                                             'system': results.get('body').get(key).get('type'),
+                                             'clicked': False,
+                                             'date': None}})
+
+            payload = {
+                'start': session_start_date.strftime("%Y-%m-%d %H:%M:%S"),
+                'end': session_end_date.strftime("%Y-%m-%d %H:%M:%S"),
+                'interleave': True,
+                'clicks': json.dumps(click_dict)
+            }
+            req = requests.post(STELLA_APP_API + "recommendation/" + str(rec_id) + "/feedback", data=payload)
+
+        for k, v in results.get('body').items():
             id = v.get('docid')
             detail = item_details(id)
 
@@ -134,7 +194,8 @@ def detail(doc_id):
                           "Publisher": detail["publisher"],
                           "Type": detail["type"]})
     except Exception as e:
-        raise e
+        # raise e
+        pass
 
     return render_template('detail.html', result=doc, similar_items=l[:3], query=doc_id)
 
