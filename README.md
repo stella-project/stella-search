@@ -17,7 +17,7 @@ git clone https://github.com/stella-project/stella-app.git
 git clone https://github.com/stella-project/stella-server.git
 ```
 * Make sure the following ports are available `80`,`8000`, and `8080`. The STELLA server will run on port `80`, the STELLA app on port `8080` and the STELLA search interface on port `8000`.   
-* Place the dataset you want to be indexed in `data/index` in both repositories [STELLA search](https://github.com/stella-project/stella-search) and [STELLA app](https://github.com/stella-project/stella-app). Per default we use the PubMed snapshot `livivo.jsonl` from 2015-2016 by LIVIVO. However, in this case no dataset recommendations can be provided. By using the `gesis.jsonl`, dataset recommendations are available but only in German. Likewise you can use you own dataset. In order to do so, you have to convert the data into the right format (see also this script).
+* Place the dataset you want to be indexed in `data/index` in both repositories [STELLA search](https://github.com/stella-project/stella-search) and [STELLA app](https://github.com/stella-project/stella-app). Per default we use the PubMed snapshot `livivo.jsonl` from 2015-2016 by LIVIVO. However, in this case no dataset recommendations can be provided. By using the `gesis.jsonl`, dataset recommendations are available but only in German. Likewise you can use you own dataset. In order to do so, you have to convert the data into the right format (see also this [script](https://github.com/stella-project/stella-search/blob/master/data/convert.py)).
 * Start the STELLA server first in order to setup a docker network for all containers.
 ```
 cd ./stella-server
