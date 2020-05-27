@@ -2,6 +2,8 @@
 A search interface that connects to the STELLA infrastructure. Queries are conducted to the [STELLA app](https://github.com/stella-project/stella-app) and logged data can be investigated by visiting the dashboard service of the [STELLA server](https://github.com/stella-project/stella-server).
 
 ## Demo setup of the entire infrastructure
+The following setup guide can be used to get the entire infrastructure running with less than 10 command line calls. Required are installations of docker and docker-compose and the possibility to run docker as a non-root user.
+
 * Clone this repository:
 ```
 git clone https://github.com/stella-project/stella-search.git
