@@ -10,7 +10,7 @@ import random
 import ast
 import datetime
 
-STELLA_APP_API = 'http://0.0.0.0:8000/stella/api/v1/'
+STELLA_APP_API = 'http://0.0.0.0:8080/stella/api/v1/'
 JL_PATH = './data/index'
 
 
@@ -68,7 +68,8 @@ def single_doc(id):
             'type': doc['type'],
             'id': id,
             'source': doc['publisher'],
-            'abstract': (doc['abstract'][0] if type(doc['abstract']) is list else doc['abstract'])[:500] + '...',
+            # 'abstract': (doc['abstract'][0] if type(doc['abstract']) is list else doc['abstract'])[:500] + '...',
+            'abstract': (doc['abstract'][0] if type(doc['abstract']) is list else doc['abstract'])[:1200] + '...',
             'similar_items': recommendations[:3]}
 
 
@@ -178,7 +179,7 @@ def detail(doc_id):
             req = requests.post(STELLA_APP_API + "recommendation/" + str(rec_id) + "/feedback", data=payload)
 
         for k, v in results.get('body').items():
-            id = v.get('docid')
+            id = v.get('doc_id')
             detail = item_details(id)
 
             if "publisher" not in detail:
