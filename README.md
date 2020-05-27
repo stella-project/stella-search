@@ -30,7 +30,7 @@ docker-compose up -d
 cd ../stella-app
 docker-compose -f local.yml up -d
 ```
-* Index the data by visiting `0.0.0.0:8080` and click all index buttons. Alternatively, the indexing can be triggered by API endpoints.
+When setting up the STELLA app, the data will be indexed by each system. For these sample datasets this is managable by a laptop. If the datasets get larger, you can start the indexing of single containers by visiting `0.0.0.0:8080` and clicking the index buttons. Likewise, the indexing can be triggered by API endpoints for either single containers or bulk/parallel indexing.
 * Start STELLA search:
 ```
 cd ../stella-search
