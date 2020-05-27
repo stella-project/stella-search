@@ -1,0 +1,16 @@
+version: '3'
+
+networks:
+    stella-shared:
+        external:
+            name: stella-server_default
+
+services:
+    search:
+        build: ./app
+        volumes:
+          - ./data/:/data/
+        ports:
+            - "5000:5000"
+        networks:
+            - stella-shared

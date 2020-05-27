@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}STELLA search{% endblock %}
+
+{% block page_content %}
+<div class="mx-auto" style="margin: 0 auto; width: 500px;">
+{{ wtf.quick_form(form) }}
+</div>
+{% if results %}
+    <div style="padding-top: 25px;">
+    <ul class="list-group">
+    {% for result in results %}
+        <a href={{"detail/"+result['id'] }} class="list-group-item list-group-item-action flex-column align-items-start">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">{{ result['title'] }}</h5>
+                <small class="text-muted">{{ result['type'] }}</small>
+            </div>
+            {% if result.text  %}
+            <p class="mb-1">{{ result.text  }}</p>
+            {% endif %}
+            <small class="text-muted">{{ result['source'] }}</small>
+        </a>
+    {% endfor %}
+    </ul>
+    </div>
+{% endif %}
+{% endblock %}

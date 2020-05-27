@@ -1,0 +1,47 @@
+{% extends "bootstrap/base.html" %}
+
+{% block title %}Simple search{% endblock %}
+
+{% block head %}
+{{ super() }}
+    <style type="text/css">
+        .navbar-header img {
+            height: 65px;
+            margin: -10px;
+        }
+        .navbar {
+            color: white;
+            background-color: #201C2D;
+        }
+        .navbar-brand {
+            color: white;
+        }
+    </style>
+{% endblock %}
+
+{% block navbar %}
+<div class="navbar navbar-inverse navbar-static-top" role="navigation">
+    <div class="container">
+        <div class="navbar-header">
+            <img class="navbar-brand" src={{ url_for('static', filename = "img/stella-logo.png") }}  alt="logo" max-height="90px">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand mx-auto" href="/">STELLA search</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% block page_content %}{% endblock %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% endblock %}
