@@ -1,7 +1,7 @@
 # STELLA Search
 A search interface that connects to the STELLA infrastructure. Queries are conducted to the [STELLA app](https://github.com/stella-project/stella-app) and logged data can be investigated by visiting the dashboard service of the [STELLA server](https://github.com/stella-project/stella-server).
 
-## Setup
+## Demo setup of the entire infrastructure
 * Clone this repository:
 ```
 git clone https://github.com/stella-project/stella-search.git
