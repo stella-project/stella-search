@@ -10,10 +10,10 @@ import random
 import ast
 import datetime
 
-# STELLA_APP_API = 'http://0.0.0.0:8080/stella/api/v1/'
+# STELLA_APP_API = 'http://0.0.0.0:8000/stella/api/v1/'
 # JL_PATH = './data/index'
 STELLA_APP_API = 'http://app:8000/stella/api/v1/'
-JL_PATH = '/data/index'
+JL_PATH = './data/index'
 
 
 def index_data(jl_path):
@@ -99,8 +99,8 @@ def index():
         results = doc_list(id_list)
 
         # send feedback directly after the ranking is retrieved
-        session_id = req.get('header').get('session')
-        ranking_id = req.get('header').get('ranking')
+        session_id = req.get('header').get('sid')
+        ranking_id = req.get('header').get('rid')
 
         click_dict = req.get('body')
         if len(click_dict) > 0:
@@ -111,12 +111,12 @@ def index():
             random.sample(range(1, 10), random.randint(1, 9))
             for key, val in click_dict.items():
                 if int(key) in random_clicks:
-                    click_dict.update({key: {'doc_id': req.get('body').get(key).get('docid'),
+                    click_dict.update({key: {'docid': req.get('body').get(key).get('docid'),
                                              'system': req.get('body').get(key).get('type'),
                                              'clicked': True,
                                              'date': session_start_date.strftime("%Y-%m-%d %H:%M:%S")}})
                 else:
-                    click_dict.update({key: {'doc_id': req.get('body').get(key).get('docid'),
+                    click_dict.update({key: {'docid': req.get('body').get(key).get('docid'),
                                              'system': req.get('body').get(key).get('type'),
                                              'clicked': False,
                                              'date': None}})
@@ -129,7 +129,7 @@ def index():
             }
 
             r = requests.post(STELLA_APP_API + 'ranking/' + str(ranking_id) + '/feedback', data=payload)
-            r_json = json.loads(r.text)
+            # r_json = json.loads(r.text)
             # print(r_json, ranking_id)
 
     return render_template('index.html', form=form, results=results)
@@ -162,12 +162,12 @@ def detail(doc_id):
             random.sample(range(1, 10), random.randint(1, 9))
             for key, val in click_dict.items():
                 if int(key) in random_clicks:
-                    click_dict.update({key: {'doc_id': results.get('body').get(key).get('docid'),
+                    click_dict.update({key: {'docid': results.get('body').get(key).get('docid'),
                                              'system': results.get('body').get(key).get('type'),
                                              'clicked': True,
                                              'date': session_start_date.strftime("%Y-%m-%d %H:%M:%S")}})
                 else:
-                    click_dict.update({key: {'doc_id': results.get('body').get(key).get('docid'),
+                    click_dict.update({key: {'docid': results.get('body').get(key).get('docid'),
                                              'system': results.get('body').get(key).get('type'),
                                              'clicked': False,
                                              'date': None}})
