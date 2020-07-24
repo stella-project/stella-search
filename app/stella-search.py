@@ -143,13 +143,13 @@ def item_details(id):
             "type": "type goes here"}
 
 
-@app.route('/detail/<string:doc_id>', methods=['GET'])
-def detail(doc_id):
+@app.route('/detail/<string:docid>', methods=['GET'])
+def detail(docid):
     l = []
-    doc = single_doc(doc_id)
+    doc = single_doc(docid)
     try:
 
-        results = requests.get(STELLA_APP_API + "recommendation/datasets?item_id=" + doc_id).json()
+        results = requests.get(STELLA_APP_API + "recommendation/datasets?item_id=" + docid).json()
 
         # send feedback for recommendation of publications
         click_dict = results.get('body')
@@ -200,7 +200,7 @@ def detail(doc_id):
         # raise e
         pass
 
-    return render_template('detail.html', result=doc, similar_items=l[:3], query=doc_id)
+    return render_template('detail.html', result=doc, similar_items=l[:3], query=docid)
 
 
 if __name__ == '__main__':
