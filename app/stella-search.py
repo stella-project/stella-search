@@ -11,7 +11,7 @@ import ast
 import datetime
 
 # STELLA_APP_API = 'http://0.0.0.0:8000/stella/api/v1/'
-# JL_PATH = './data/index'
+# JL_PATH = '../data/index'
 STELLA_APP_API = 'http://app:8000/stella/api/v1/'
 JL_PATH = './data/index'
 
@@ -33,12 +33,12 @@ def doc_list(id_list):
 def single_doc(id):
     doc = corpus.get(id)
     # random_ids = random.choices(list(corpus.keys()), k=4)
-    req = requests.get(STELLA_APP_API + "recommendation/publications?item_id=" + id).json()
+    req = requests.get(STELLA_APP_API + "recommendation/publications?itemid=" + id).json()
     recommendations = doc_list([v['docid'] for k, v in req.get('body').items()])
 
     # send feedback for recommendation of publications
     click_dict = req.get('body')
-    rec_id = req.get('header').get('recommendation')
+    rec_id = req.get('header').get('rid')
     if len(click_dict) > 0:
         session_start_date = datetime.datetime.now()
         session_end_date = session_start_date + datetime.timedelta(0, random.randint(10, 3000))
@@ -47,21 +47,25 @@ def single_doc(id):
         random.sample(range(1, 10), random.randint(1, 9))
         for key, val in click_dict.items():
             if int(key) in random_clicks:
-                click_dict.update({key: {'doc_id': req.get('body').get(key).get('docid'),
+                click_dict.update({key: {'docid': req.get('body').get(key).get('docid'),
                                          'system': req.get('body').get(key).get('type'),
                                          'clicked': True,
                                          'date': session_start_date.strftime("%Y-%m-%d %H:%M:%S")}})
             else:
-                click_dict.update({key: {'doc_id': req.get('body').get(key).get('docid'),
+                click_dict.update({key: {'docid': req.get('body').get(key).get('docid'),
                                          'system': req.get('body').get(key).get('type'),
                                          'clicked': False,
                                          'date': None}})
 
+        # have to use json.dumps(click_dict) since requests cannot send dict in dict as payload
+        # see also this thread: https://stackoverflow.com/questions/38380086/sending-list-of-dicts-as-value-of-dict-with-requests-post-going-wrong
+        # the stella-server will accept string-formatted json as well as conventional json
         payload = {
             'start': session_start_date.strftime("%Y-%m-%d %H:%M:%S"),
             'end': session_end_date.strftime("%Y-%m-%d %H:%M:%S"),
             'interleave': True,
             'clicks': json.dumps(click_dict)
+            # 'clicks': click_dict
         }
         req = requests.post(STELLA_APP_API + "recommendation/" + str(rec_id) + "/feedback", data=payload)
 
@@ -121,11 +125,15 @@ def index():
                                              'clicked': False,
                                              'date': None}})
 
+            # have to use json.dumps(click_dict) since requests cannot send dict in dict as payload
+            # see also this thread: https://stackoverflow.com/questions/38380086/sending-list-of-dicts-as-value-of-dict-with-requests-post-going-wrong
+            # the stella-server will accept string-formatted json as well as conventional json
             payload = {
                 'start': session_start_date.strftime("%Y-%m-%d %H:%M:%S"),
                 'end': session_end_date.strftime("%Y-%m-%d %H:%M:%S"),
                 'interleave': True,
                 'clicks': json.dumps(click_dict)
+                # 'clicks': click_dict
             }
 
             r = requests.post(STELLA_APP_API + 'ranking/' + str(ranking_id) + '/feedback', data=payload)
@@ -153,7 +161,7 @@ def detail(docid):
 
         # send feedback for recommendation of publications
         click_dict = results.get('body')
-        rec_id = results.get('header').get('recommendation')
+        rec_id = results.get('header').get('rid')
         if len(click_dict) > 0:
             session_start_date = datetime.datetime.now()
             session_end_date = session_start_date + datetime.timedelta(0, random.randint(10, 3000))
@@ -172,11 +180,15 @@ def detail(docid):
                                              'clicked': False,
                                              'date': None}})
 
+            # have to use json.dumps(click_dict) since requests cannot send dict in dict as payload
+            # see also this thread: https://stackoverflow.com/questions/38380086/sending-list-of-dicts-as-value-of-dict-with-requests-post-going-wrong
+            # the stella-server will accept string-formatted json as well as conventional json
             payload = {
                 'start': session_start_date.strftime("%Y-%m-%d %H:%M:%S"),
                 'end': session_end_date.strftime("%Y-%m-%d %H:%M:%S"),
                 'interleave': True,
                 'clicks': json.dumps(click_dict)
+                # 'clicks': click_dict
             }
             req = requests.post(STELLA_APP_API + "recommendation/" + str(rec_id) + "/feedback", data=payload)
 
