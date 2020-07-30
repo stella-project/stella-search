@@ -13,7 +13,7 @@ import datetime
 # STELLA_APP_API = 'http://0.0.0.0:8000/stella/api/v1/'
 # JL_PATH = '../data/index'
 STELLA_APP_API = 'http://app:8000/stella/api/v1/'
-JL_PATH = './data/index'
+JL_PATH = '../data/index'
 
 
 def index_data(jl_path):
