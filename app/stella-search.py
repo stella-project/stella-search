@@ -157,7 +157,7 @@ def detail(docid):
     doc = single_doc(docid)
     try:
 
-        results = requests.get(STELLA_APP_API + "recommendation/datasets?item_id=" + docid).json()
+        results = requests.get(STELLA_APP_API + "recommendation/datasets?itemid=" + docid).json()
 
         # send feedback for recommendation of publications
         click_dict = results.get('body')
