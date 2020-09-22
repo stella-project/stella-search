@@ -36,7 +36,7 @@ When setting up the STELLA app, the data will be indexed by each system. For the
 ```
 docker-compose -f stella-search/docker-compose.yml up -d
 ```
-* Visit [http://0.0.0.0:8000](http://0.0.0.0:8000) and enter a query, browse, click, ...
+* Visit [http://0.0.0.0:8000](http://0.0.0.0:8000) and enter a query, browse, click. As the demo includes a small sample dataset from the medical domain try queries like `vaccine`, `treatment`, `epidemic`.
 * Visit [http://0.0.0.0:80](http://0.0.0.0:80), login and visit the dashboard. Use the following credentials for a pre-registered account:  
 `user`: site_a@stella.org  
 `pass`: pass  
