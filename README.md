@@ -41,3 +41,57 @@ docker-compose -f stella-search/docker-compose.yml up -d
 `user`: site_a@stella.org  
 `pass`: pass  
 Alternatively, you can simulate user interactions with the script provided in the STELLA server repository.
+
+
+## Citation
+
+If you use `stella-search` in your work, please refer to it by the `CITATION.cff` file:
+
+
+```
+# YAML 1.2
+---
+abstract: "STELLA search is a minimal front-end that is used to showcase the idea of the STELLA infrastructure. It offers access to results from the STELLA app and, likewise, sends feedback to it. It includes a search field, a dynamic list of found results and a detail view with recommendations."
+authors: 
+  -
+    affiliation: "TH Köln - University of Applied Sciences, Germany"
+    family-names: Schaer
+    given-names: Philipp
+    orcid: "https://orcid.org/0000-0002-8817-4632"
+  -
+    affiliation: "GESIS - Leibniz Institute for the Social Sciences, Germany"
+    family-names: Schaible
+    given-names: Johann
+    orcid: "https://orcid.org/0000-0002-5441-7640"
+  -
+    family-names: "Garcia Castro"
+    given-names: "Leyla Jael"
+    orcid: "https://orcid.org/0000-0003-3986-0510"
+  -
+    family-names: Breuer
+    given-names: Timo
+    orcid: "https://orcid.org/0000-0002-1765-2449"
+  -
+    family-names: Tavakolpoursaleh
+    given-names: Narges
+    orcid: "https://orcid.org/0000-0001-9324-3252"
+  -
+    family-names: Wolff
+    given-names: Benjamin
+    orcid: "https://orcid.org/0000-0001-9345-8958"
+cff-version: "1.1.0"
+date-released: 2020-09-21
+keywords: 
+  - "Living Lab"
+  - "Evaluation Infrastructure"
+  - "Shared Task"
+license: MIT
+message: "If you use this software, please cite it using these metadata."
+title: "STELLA Search"
+version: "0.1"
+...
+```
+
+## License
+
+`stella-search` is licensed under the MIT license. If you modify `stella-search` in any way, please link back to this repository.
