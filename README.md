@@ -98,4 +98,4 @@ version: "0.1"
 
 ## License
 
-`stella-search` is licensed under the MIT license. If you modify `stella-search` in any way, please link back to this repository.
+`stella-search` is licensed under the [GNU GPLv3 license](https://github.com/stella-project/stella-search/blob/master/LICENSE). If you modify `stella-search` in any way, please link back to this repository.
