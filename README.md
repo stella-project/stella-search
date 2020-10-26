@@ -42,59 +42,13 @@ docker-compose -f stella-search/docker-compose.yml up -d
 `pass`: pass  
 Alternatively, you can simulate user interactions with the script provided in the STELLA server repository.
 
-
 ## Citation
 
-If you use `stella-search` in your work, please refer to it by the `CITATION.cff` file:
+We provide citation information via the [CITATION file](./CITATION.cff). If you use `stella-search` in your work, please cite our repository as follows:
 
+> Schaer P, Schaible J, Garcia Castro LJ, Breuer T, Tavakolpoursaleh N, Wolff B. STELLA Search. Available at https://github.com/stella-project/stella-search/
 
-```
-# YAML 1.2
----
-abstract: "STELLA search is a minimal front-end that is used to showcase the idea of the STELLA infrastructure. It offers access to results from the STELLA app and, likewise, sends feedback to it. It includes a search field, a dynamic list of found results and a detail view with recommendations."
-authors: 
-  -
-    affiliation: "TH Köln - University of Applied Sciences, Germany"
-    family-names: Schaer
-    given-names: Philipp
-    orcid: "https://orcid.org/0000-0002-8817-4632"
-  -
-    affiliation: "GESIS - Leibniz Institute for the Social Sciences, Germany"
-    family-names: Schaible
-    given-names: Johann
-    orcid: "https://orcid.org/0000-0002-5441-7640"
-  -
-    affiliation: "ZB MED - Information Centre for Life Sciences, Germany"
-    family-names: "Garcia Castro"
-    given-names: "Leyla Jael"
-    orcid: "https://orcid.org/0000-0003-3986-0510"
-  -
-    affiliation: "TH Köln - University of Applied Sciences, Germany"
-    family-names: Breuer
-    given-names: Timo
-    orcid: "https://orcid.org/0000-0002-1765-2449"
-  -
-    affiliation: "GESIS - Leibniz Institute for the Social Sciences, Germany"
-    family-names: Tavakolpoursaleh
-    given-names: Narges
-    orcid: "https://orcid.org/0000-0001-9324-3252"
-  -
-    affiliation: "ZB MED - Information Centre for Life Sciences, Germany"
-    family-names: Wolff
-    given-names: Benjamin
-    orcid: "https://orcid.org/0000-0001-9345-8958"
-cff-version: "1.1.0"
-date-released: 2020-09-21
-keywords: 
-  - "Living Lab"
-  - "Evaluation Infrastructure"
-  - "Shared Task"
-license: MIT
-message: "If you use this software, please cite it using these metadata."
-title: "STELLA Search"
-version: "0.1"
-...
-```
+We recommend you include the retrieval date.
 
 ## License
 
