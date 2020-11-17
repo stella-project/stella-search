@@ -19,7 +19,7 @@ git clone https://github.com/stella-project/stella-app.git && cd stella-app && g
 
 * Clone the [STELLA server](https://github.com/stella-project/stella-server):
 ```
-git clone https://github.com/stella-project/stella-server.git && cd stella-server && git checkout 941e41d5c1c9577783c8781d7432d7de698260a4 && cd ..
+git clone https://github.com/stella-project/stella-server.git && cd stella-server && git checkout 054cc2e03faadffb7aada1f94663176fb075fd08 && cd ..
 ```
 * Make sure the following ports are available `80`,`8000`, and `8080`. The STELLA server will run on port `80`, the STELLA app on port `8080` and the STELLA search interface on port `8000`.   
 * Place the dataset you want to be indexed in `data/index` in both repositories [STELLA search](https://github.com/stella-project/stella-search) and [STELLA app](https://github.com/stella-project/stella-app). Per default we use the PubMed snapshot `livivo.jsonl` from 2015-2016 by LIVIVO. This means, if you are fine with using this data, you do not have to mv/cp/rm anything to/from the data folders (do not touch it!). However, in this case no dataset recommendations can be provided. By using the `gesis.jsonl`, dataset recommendations are available but only in German. Likewise you can use you own dataset. In order to do so, you have to convert the data into the right format (see also this [script](https://github.com/stella-project/stella-search/blob/master/data/convert.py)).
