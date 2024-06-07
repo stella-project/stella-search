@@ -11,6 +11,6 @@ services:
         volumes:
           - ./data/:/data/
         ports:
-            - "8000:5000"
+            - "8888:5000"
         networks:
             - stella-shared
