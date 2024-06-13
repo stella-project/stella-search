@@ -17,7 +17,6 @@ logging.basicConfig(level=logging.DEBUG)
 # JL_PATH = '../data/index'
 STELLA_APP_API = "http://host.docker.internal:8080/stella/api/v1/"
 JL_PATH = "../data/index"
-JL_PATH = "../data/test"
 
 
 def index_data(jl_path):
