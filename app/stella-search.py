@@ -13,10 +13,10 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-# STELLA_APP_API = 'http://0.0.0.0:8000/stella/api/v1/'
-# JL_PATH = '../data/index'
-STELLA_APP_API = "http://host.docker.internal:8080/stella/api/v1/"
-JL_PATH = "../data/index"
+STELLA_APP_API = 'http://stella-app-web-1:8000/stella/api/v1/'
+JL_PATH = '../data/index'
+# STELLA_APP_API = "http://host.docker.internal:8080/stella/api/v1/"
+# JL_PATH = "../data/index"
 
 
 def index_data(jl_path):
@@ -42,8 +42,9 @@ def single_doc(id):
     req = requests.get(
         STELLA_APP_API + "recommendation/publications?itemid=" + id
     ).json()
+    logging.info(f">>>>>>>>> REQUEST {req}")
     recommendations = doc_list([v["docid"] for k, v in req.get("body").items()])
-
+    logging.info(f">>>>>>>>> Recommendatons for {recommendations}")
     # send feedback for recommendation of publications
     click_dict = req.get("body")
     rec_id = req.get("header").get("rid")

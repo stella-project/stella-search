@@ -1,3 +1,10 @@
+name: stella
+
+networks:
+  stella-shared:
+    external: true
+    name: stella-shared
+
 services:
     search:
         build: ./app
@@ -5,3 +12,5 @@ services:
           - ./data/:/data/
         ports:
             - "8888:5000"
+        networks:
+          - stella-shared 
