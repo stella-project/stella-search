@@ -13,7 +13,7 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-STELLA_APP_API = 'http://stella-app-web-1:8000/stella/api/v1/'
+STELLA_APP_API = 'http://stella-app:8000/stella/api/v1/'
 JL_PATH = '../data/index'
 # STELLA_APP_API = "http://host.docker.internal:8080/stella/api/v1/"
 # JL_PATH = "../data/index"
