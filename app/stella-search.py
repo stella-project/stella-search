@@ -15,9 +15,6 @@ logging.basicConfig(level=logging.DEBUG)
 
 STELLA_APP_API = 'http://stella-app:8000/stella/api/v1/'
 JL_PATH = '../data/index'
-# STELLA_APP_API = "http://host.docker.internal:8080/stella/api/v1/"
-# JL_PATH = "../data/index"
-
 
 def index_data(jl_path):
     corpus = {}
@@ -94,19 +91,26 @@ def single_doc(id):
             STELLA_APP_API + "recommendation/" + str(rec_id) + "/feedback", data=payload
         )
 
+
+    abstract = None
+    if doc['abstract'] is not None:
+        if type(doc['abstract']) is list:
+            abstract = doc['abstract'][0]
+        else:
+            abstract = doc['abstract']
+    if abstract is not None:
+        abstract = abstract[:1200] + '...'
+    else:
+        abstract = 'nix hier'
+
     # return recommendations
-    return {
-        "title": doc["title"],
-        "type": doc.get("type"),
-        "id": id,
-        "source": doc.get("publisher"),
-        # 'abstract': (doc['abstract'][0] if type(doc['abstract']) is list else doc['abstract'])[:500] + '...',
-        "abstract": (
-            doc["abstract"][0] if type(doc["abstract"]) is list else doc["abstract"]
-        )[:1200]
-        + "...",
-        "similar_items": recommendations[:3],
-    }
+    return {'title': doc['title'],
+            'type': 'publication', #doc['type'],
+            'id': id,
+            'source': 'Unidentified', #doc['publisher'],
+            # 'abstract': (doc['abstract'][0] if type(doc['abstract']) is list else doc['abstract'])[:500] + '...',
+            'abstract': abstract,
+            'similar_items': recommendations[:3]}
 
 
 class SearchForm(FlaskForm):
@@ -130,7 +134,7 @@ def index():
         req = requests.get(STELLA_APP_API + "ranking?query=" + query).json()
         logging.info(">>>>>>>>> REQ %s", req)
 
-        result_list = req.get("body").values()
+        result_list = req.get("body")
         logging.info(">>>>>>>>> RESULT LIST %s", result_list)
 
         id_list = [doc["docid"] for doc in result_list]
@@ -146,7 +150,11 @@ def index():
         session_id = req.get("header").get("sid")
         ranking_id = req.get("header").get("rid")
 
-        click_dict = req.get("body")
+        click_dict = {}
+        for d in result_list:
+            ind = str(result_list.index(d))
+            click_dict[ind] = d
+
         if len(click_dict) > 0:
             session_start_date = datetime.datetime.now()
             session_end_date = session_start_date + datetime.timedelta(
@@ -159,29 +167,15 @@ def index():
             random.sample(range(1, 10), random.randint(1, 9))
             for key, val in click_dict.items():
                 if int(key) in random_clicks:
-                    click_dict.update(
-                        {
-                            key: {
-                                "docid": req.get("body").get(key).get("docid"),
-                                "system": req.get("body").get(key).get("type"),
-                                "clicked": True,
-                                "date": session_start_date.strftime(
-                                    "%Y-%m-%d %H:%M:%S"
-                                ),
-                            }
-                        }
-                    )
+                    click_dict.update({key: {'docid': result_list[int(key)].get('docid'),
+                                             'system': result_list[int(key)].get('type'),
+                                             'clicked': True,
+                                             'date': session_start_date.strftime("%Y-%m-%d %H:%M:%S")}})
                 else:
-                    click_dict.update(
-                        {
-                            key: {
-                                "docid": req.get("body").get(key).get("docid"),
-                                "system": req.get("body").get(key).get("type"),
-                                "clicked": False,
-                                "date": None,
-                            }
-                        }
-                    )
+                    click_dict.update({key: {'docid': result_list[int(key)].get('docid'),
+                                             'system': result_list[int(key)].get('type'),
+                                             'clicked': False,
+                                             'date': None}})
 
             # have to use json.dumps(click_dict) since requests cannot send dict in dict as payload
             # see also this thread: https://stackoverflow.com/questions/38380086/sending-list-of-dicts-as-value-of-dict-with-requests-post-going-wrong
