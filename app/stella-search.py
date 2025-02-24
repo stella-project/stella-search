@@ -13,9 +13,9 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-STELLA_APP_API = 'http://stella-app:8000/stella/api/v1/'
-PUB_PATH = '../data/index/publication.jsonl'
-DATA_PATH = '../data/index/dataset.jsonl'
+STELLA_APP_API = os.environ.get("STELLA_APP_ADDRESS", "http://stella-app:8000") + "/stella/api/v1/"
+PUB_PATH = os.environ.get("PUB_PATH", "../data/index/publication.jsonl")
+DATA_PATH = os.environ.get("DATA_PATH", "../data/index/dataset.jsonl")
 
 ranking_list = []
 publication_list = []
@@ -128,13 +128,10 @@ def index():
             query = form.query.data
             form.query.data = query
             req = requests.get(STELLA_APP_API + "ranking?query=" + query).json()
-            #logging.info(">>>>>>>>> REQ %s", req)
 
             ranking_list = req.get("body")
-            #logging.info(">>>>>>>>> RESULT LIST %s", ranking_list)
 
             id_list = [doc["docid"] for doc in ranking_list]
-            #logging.info(">>>>>>>>> ID LIST %s", id_list)
 
             results = doc_list(id_list, 'publication')
 
@@ -146,7 +143,6 @@ def index():
             #session_id = req.get("header").get("sid")
             ranking_id = req.get("header").get("rid")
 
-            #logging.info(">>>>>>>>> Results: " + str(results))
     except Exception as e:
         logging.error(">>>>>>>>> ERROR %s", e)
 
@@ -171,7 +167,6 @@ def get_publication_recommendations(docid):
         req = requests.get(
             STELLA_APP_API + "recommendation/publications?itemid=" + docid
         ).json()
-        logging.info(f">>>>>>>>> REQUEST {req}")
         pub_ids = doc_list([v["docid"] for k, v in req.get("body").items()], 'publication')
 
         publication_list = list(req.get("body").values())
@@ -219,7 +214,6 @@ def get_dataset_recommendations(docid):
 
 
         data_ids = doc_list([v["docid"] for k, v in req.get("body").items()], 'dataset')
-        logging.info(f'>>>>>>>>>>>> DATASETS-2: {data_ids}')
         for i, d in enumerate(data_ids):
             if type(d['title']) == list:
                 data_ids[i]['title'] = d['title'][0]
