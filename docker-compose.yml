@@ -10,7 +10,13 @@ services:
         build: ./app
         volumes:
           - ./data/:/data/
+          - ./app:/app
         ports:
             - "8888:5000"
         networks:
           - stella-shared 
+        environment:
+          # Config
+          STELLA_APP_ADDRESS: "http://stella-app:8000"
+          PUB_PATH: "../data/index/publication.jsonl"
+          DATA_PATH: "../data/index/dataset.jsonl"
