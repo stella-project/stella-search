@@ -16,10 +16,12 @@
                 <h5 class="mb-1">{{ result['title'] }}</h5>
                 <small class="text-muted">{{ result['type'] }}</small>
             </div>
-            {% if result.text  %}
-            <p class="mb-1">{{ result.text  }}</p>
+            {% if result.snippet %}
+            <p class="mb-1">{{ result.snippet }}</p>
             {% endif %}
-            <small class="text-muted">{{ result['source'] }}</small>
+            {% if result.source or result.date %}
+            <small class="text-muted">{{ result.source }}{% if result.source and result.date %} · {% endif %}{{ result.date }}</small>
+            {% endif %}
         </a>
     {% endfor %}
     </ul>

@@ -1,28 +1,16 @@
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
-.header {
-cursor:pointer;
-}
-.contentList
-{
-display:none;
-}
-
-hr.divide
-{
-border: 10px solid green;
-border-radius: 5px;
-}
 
 {% block title %}STELLA search{% endblock %}
 
 {% block page_content %}
 
-<div class="well well-sm" style="margin: 10 auto; height: 300px;">
+<div class="well well-sm" style="margin: 10px auto; overflow-wrap: break-word; word-wrap: break-word;">
     <h2>{{document['title']}}</h2>
-    <p>{{document['abstract']}}</p>
+    <p>{{document['text']}}</p>
 </div>
 
+{% if show_recommendations %}
 <div class="well well-sm">
     <h3 style="text-align:center">Recommendations</h3>
     <div style="width: 100%; overflow: hidden;">
@@ -30,25 +18,25 @@ border-radius: 5px;
             <h4 style="text-align:center">Documents: </h4>
             <div style="padding-top: 25px;">
                 <ul class="list-group">
-                    {% for item in recommendations.similar_items %}
+                    {% for item in similar_items %}
                     <a class="list-group-item list-group-item-action flex-column align-items-start"
                         href={{"/detail/"+item['id']+"/REC_PUB" }}>
                         <div class="d-flex w-100 justify-content-between">
                             <div>
-                                <div onmouseover="headerClicked(this);" onmouseleave="headerClickedUp(this);">
-                                    <ul>
-                                        <li class="header"> <b>{{item['title']}}</b> </li>
-                                    </ul>
-                                </div>
-                                <ul class="contentList">
+                                <ul>
+                                    <li> <b>{{item['title']}}</b> </li>
                                 </ul>
                             </div>
                         </div>
                     </a>
+                    {% else %}
+                    <li class="list-group-item">No recommendations available.</li>
                     {% endfor %}
                 </ul>
             </div>
         </div>
     </div>
+</div>
+{% endif %}
 
-    {% endblock %}
+{% endblock %}
