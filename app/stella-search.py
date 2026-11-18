@@ -3,9 +3,10 @@ import datetime
 import json
 import logging
 import os
+import time
 
 import requests
-from flask import Flask, render_template
+from flask import Flask, render_template, session
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
@@ -23,6 +24,9 @@ PUB_PATH = os.environ.get("PUB_PATH", "../data/index/publication.jsonl")
 DATA_PATH = os.environ.get("DATA_PATH", "../data/index/dataset.jsonl")
 
 DATE_FMT = "%Y-%m-%d %H:%M:%S"
+
+# A STELLA session (sid) ends after this many seconds without user activity.
+SESSION_TIMEOUT = int(os.environ.get("SESSION_TIMEOUT", 5 * 60))
 
 # State of the most recently shown result lists (single-user demo, module-level).
 # Each entry holds the list returned by the STELLA app, its result id (rid),
@@ -55,6 +59,25 @@ def set_result_list(result_type, items, rid):
         "start": datetime.datetime.now(),
         "clicks": {},
     }
+
+
+def current_sid():
+    """Return the STELLA session id of this user, or None if there is none or
+    it expired. Any activity within the timeout keeps the session alive."""
+    now = time.time()
+    if session.get("sid") and now - session.get("last_seen", 0) > SESSION_TIMEOUT:
+        logging.info("STELLA session %s expired", session["sid"])
+        session.pop("sid", None)
+    session["last_seen"] = now
+    return session.get("sid")
+
+
+def remember_sid(header):
+    """Store the session id the STELLA app assigned (or confirmed)."""
+    sid = (header or {}).get("sid")
+    if sid:
+        session["sid"] = sid
+        session["last_seen"] = time.time()
 
 
 def send_feedback(result_type, docid):
@@ -113,7 +136,7 @@ class SearchForm(FlaskForm):
 
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "udonotknow"
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "udonotknow")
 bootstrap = Bootstrap()
 bootstrap.init_app(app)
 
@@ -127,13 +150,18 @@ def index():
         if form.validate_on_submit():
             query = form.query.data
             form.query.data = query
-            req = requests.get(STELLA_APP_API + "ranking?query=" + query).json()
+            params = {"query": query}
+            sid = current_sid()
+            if sid:
+                params["sid"] = sid
+            req = requests.get(STELLA_APP_API + "ranking", params=params).json()
             if not req.get("header"):
                 logging.error("Could not retrieve ranking for query: %s", query)
                 return render_template("index.html", form=form, results=results)
             else:
                 logging.info(req)
 
+            remember_sid(req.get("header"))
             ranking_list = list(req.get("body").values())
             set_result_list("RANK", ranking_list, req.get("header").get("rid"))
 
@@ -161,10 +189,15 @@ def item_details(id):
 
 def get_recommendations(docid):
     doc = publication_corpus.get(docid)
-    req = requests.get(STELLA_APP_API + "recommendation?itemid=" + docid)
+    params = {"itemid": docid}
+    sid = current_sid()
+    if sid:
+        params["sid"] = sid
+    req = requests.get(STELLA_APP_API + "recommendation", params=params)
 
     req = req.json()
     logging.info(req)
+    remember_sid(req.get("header"))
 
     pub_ids = doc_list([v["docid"] for k, v in req.get("body").items()])
 
