@@ -3,7 +3,6 @@ import datetime
 import json
 import logging
 import os
-import random
 
 import requests
 from flask import Flask, render_template
@@ -23,12 +22,15 @@ STELLA_APP_API = (
 PUB_PATH = os.environ.get("PUB_PATH", "../data/index/publication.jsonl")
 DATA_PATH = os.environ.get("DATA_PATH", "../data/index/dataset.jsonl")
 
-ranking_list = []
-recommendation_list = []
-ranking_id = None
-recommendation_id = None
-rid = None
-recid = None
+DATE_FMT = "%Y-%m-%d %H:%M:%S"
+
+# State of the most recently shown result lists (single-user demo, module-level).
+# Each entry holds the list returned by the STELLA app, its result id (rid),
+# the time it was shown, and the clicks recorded on it so far (docid -> click date).
+result_lists = {
+    "RANK": {"items": [], "rid": None, "start": None, "clicks": {}},
+    "REC_PUB": {"items": [], "rid": None, "start": None, "clicks": {}},
+}
 
 
 def index_data(jl_path):
@@ -45,71 +47,64 @@ def doc_list(id_list):
     return [publication_corpus.get(id) for id in id_list]
 
 
-def send_feedback(result_type):
-    global ranking_list, recommendation_list, ranking_id, recommendation_id, rid, recid
+def set_result_list(result_type, items, rid):
+    """Remember a newly shown result list and reset its recorded clicks."""
+    result_lists[result_type] = {
+        "items": list(items),
+        "rid": rid,
+        "start": datetime.datetime.now(),
+        "clicks": {},
+    }
 
-    if result_type == "RANK":
-        if rid == ranking_id:
-            return
-        result_list = ranking_list
-        rid = ranking_id
-    else:
-        if rid == recommendation_id:
-            return
-        result_list = recommendation_list
-        rid = recid
 
+def send_feedback(result_type, docid):
+    """Record a click on `docid` in the given result list and send the
+    accumulated, actual clicks for that list to the STELLA app."""
+    state = result_lists.get(result_type)
+    if state is None or state["rid"] is None:
+        return
+    if docid not in {item.get("docid") for item in state["items"]}:
+        logging.warning("Clicked doc %s is not part of the current %s list", docid, result_type)
+        return
+
+    now = datetime.datetime.now()
+    state["clicks"].setdefault(docid, now.strftime(DATE_FMT))
+
+    # Rank positions are 1-based, matching the STELLA app API.
     click_dict = {}
-    for i, d in enumerate(result_list):
-        click_dict[str(i)] = d
-
-    if len(click_dict) > 0:
-        session_start_date = datetime.datetime.now()
-        session_end_date = session_start_date + datetime.timedelta(
-            0, random.randint(10, 3000)
-        )
-        random_clicks = random.sample(range(1, len(click_dict)), random.randint(1, 3))
-        for key, val in click_dict.items():
-            click_dict[key] = {
-                "docid": val.get("docid"),
-                "type": val.get("type"),
-                "clicked": False,
-            }
-            if int(key) in random_clicks:
-                click_dict[key].update(
-                    {
-                        "clicked": True,
-                        "date": session_start_date.strftime("%Y-%m-%d %H:%M:%S"),
-                    }
-                )
-
-        payload = {
-            "start": session_start_date.strftime("%Y-%m-%d %H:%M:%S"),
-            "end": session_end_date.strftime("%Y-%m-%d %H:%M:%S"),
-            "interleave": True,
-            "clicks": json.dumps(click_dict),
+    for rank, item in enumerate(state["items"], start=1):
+        click_date = state["clicks"].get(item.get("docid"))
+        click_dict[str(rank)] = {
+            "docid": item.get("docid"),
+            "type": item.get("type"),
+            "clicked": click_date is not None,
+            "date": click_date,
         }
 
-        if result_type == "RANK":
-            feedback_req = requests.post(
-                STELLA_APP_API + "ranking/" + str(rid) + "/feedback",
-                data=payload,
-            )
-        else:
-            feedback_req = requests.post(
-                STELLA_APP_API + "recommendation/" + str(rid) + "/feedback",
-                data=payload,
-            )
-        if feedback_req.status_code != 200:
-            logging.error(
-                "Feedback request failed with status code %s: %s",
-                feedback_req.status_code,
-                feedback_req.text,
-            )
-            return
+    payload = {
+        "start": state["start"].strftime(DATE_FMT),
+        "end": now.strftime(DATE_FMT),
+        "interleave": True,
+        "clicks": json.dumps(click_dict),
+    }
 
-        feedback_req_json = json.loads(feedback_req.text)
-        logging.info(f"FEEDBACK RESPONSE ({rid}):  {feedback_req_json}")
+    endpoint = "ranking" if result_type == "RANK" else "recommendation"
+    url = STELLA_APP_API + endpoint + "/" + str(state["rid"]) + "/feedback"
+    try:
+        feedback_req = requests.post(url, data=payload)
+    except requests.RequestException as e:
+        logging.error("Feedback request to %s failed: %s", url, e)
+        return
+
+    if feedback_req.status_code not in (200, 201):
+        logging.error(
+            "Feedback request failed with status code %s: %s",
+            feedback_req.status_code,
+            feedback_req.text,
+        )
+        return
+
+    logging.info("FEEDBACK RESPONSE (%s %s): %s", endpoint, state["rid"], feedback_req.text)
 
 
 class SearchForm(FlaskForm):
@@ -125,7 +120,6 @@ bootstrap.init_app(app)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    global ranking_list, ranking_id
     results = []
     form = SearchForm()
 
@@ -140,17 +134,14 @@ def index():
             else:
                 logging.info(req)
 
-            ranking_list = req.get("body").values()
+            ranking_list = list(req.get("body").values())
+            set_result_list("RANK", ranking_list, req.get("header").get("rid"))
 
             id_list = [doc["docid"] for doc in ranking_list]
 
             results = doc_list(id_list)
 
             logging.info("Retrieved %s results for query: %s", len(results), query)
-
-            # send feedback directly after the ranking is retrieved
-            # session_id = req.get("header").get("sid")
-            ranking_id = req.get("header").get("rid")
 
     except Exception as e:
         logging.error("ERROR %s", e)
@@ -169,8 +160,6 @@ def item_details(id):
 
 
 def get_recommendations(docid):
-    global publication_list, pub_rec_id
-
     doc = publication_corpus.get(docid)
     req = requests.get(STELLA_APP_API + "recommendation?itemid=" + docid)
 
@@ -179,8 +168,7 @@ def get_recommendations(docid):
 
     pub_ids = doc_list([v["docid"] for k, v in req.get("body").items()])
 
-    publication_list = list(req.get("body").values())
-    pub_rec_id = req.get("header").get("rid")
+    set_result_list("REC_PUB", req.get("body").values(), req.get("header").get("rid"))
 
     abstract = None
     if doc["abstract"] is not None:
@@ -206,7 +194,7 @@ def get_recommendations(docid):
 
 @app.route("/detail/<string:docid>/<string:result_type>", methods=["GET"])
 def detail(docid, result_type):
-    send_feedback(result_type)
+    send_feedback(result_type, docid)
 
     document = publication_corpus.get(docid)
     recommendations = get_recommendations(docid)
