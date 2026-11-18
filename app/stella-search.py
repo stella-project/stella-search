@@ -3,7 +3,11 @@ import datetime
 import json
 import logging
 import os
+import pathlib
+import sqlite3
+import threading
 import time
+from contextlib import closing
 
 import requests
 from flask import Flask, render_template, session
@@ -21,9 +25,38 @@ STELLA_APP_API = (
     os.environ.get("STELLA_APP_ADDRESS", "http://stella-app:8000") + "/stella/api/v1/"
 )
 PUB_PATH = os.environ.get("PUB_PATH", "../data/index/publication.jsonl")
-DATA_PATH = os.environ.get("DATA_PATH", "../data/index/dataset.jsonl")
+# SQLite lookup store built from PUB_PATH; defaults to PUB_PATH + ".sqlite".
+CORPUS_DB = os.environ.get("CORPUS_DB") or None
 
 DATE_FMT = "%Y-%m-%d %H:%M:%S"
+
+
+def _field_candidates(env_var, default):
+    """Comma-separated list of source field names, tried in order."""
+    return [f.strip() for f in os.environ.get(env_var, default).split(",") if f.strip()]
+
+
+# Mapping from the internal document schema to the field names of the corpus.
+# Each entry lists source fields tried in order; the first non-empty one wins.
+# Required: id, title, text. Optional: type, date, source, url.
+FIELD_MAP = {
+    "id": _field_candidates("ID_FIELD", "id,docid,_id"),
+    "title": _field_candidates("TITLE_FIELD", "title"),
+    "text": _field_candidates("TEXT_FIELD", "abstract,text,contents,body"),
+    "type": _field_candidates("TYPE_FIELD", "type"),
+    "date": _field_candidates("DATE_FIELD", "date"),
+    "source": _field_candidates("SOURCE_FIELD", "source,publisher"),
+    "url": _field_candidates("URL_FIELD", "url"),
+}
+
+# Length of the text snippet shown on the result page (full text on the detail page).
+SNIPPET_LENGTH = int(os.environ.get("SNIPPET_LENGTH", 300))
+
+# Whether the detail page requests recommendations from the STELLA app.
+# Disable when the STELLA app has no recommender configured.
+RECOMMENDATIONS_ENABLED = os.environ.get("RECOMMENDATIONS", "true").strip().lower() not in (
+    "0", "false", "no", "off", "",
+)
 
 # A STELLA session (sid) ends after this many seconds without user activity.
 SESSION_TIMEOUT = int(os.environ.get("SESSION_TIMEOUT", 5 * 60))
@@ -37,18 +70,176 @@ result_lists = {
 }
 
 
-def index_data(jl_path):
-    corpus = {}
-    with open(jl_path) as jl:
-        for line in jl:
-            j = json.loads(line)
-            corpus[j["id"]] = json.loads(line)
-    logging.info("Indexed %s documents from %s", len(corpus), jl_path)
-    return corpus
+def _as_text(value):
+    """Flatten a raw field value (str, number, list, ...) into a string."""
+    if value is None:
+        return ""
+    if isinstance(value, (list, tuple)):
+        return " ".join(_as_text(v) for v in value if v is not None).strip()
+    return str(value).strip()
+
+
+def _lookup(record, candidates):
+    for field in candidates:
+        value = _as_text(record.get(field))
+        if value:
+            return value
+    return ""
+
+
+def _snippet(text, length=SNIPPET_LENGTH):
+    if len(text) <= length:
+        return text
+    return text[:length].rsplit(" ", 1)[0] + " …"
+
+
+def normalize_doc(record):
+    """Map a raw corpus record onto the internal schema
+    {id, title, text, snippet, type, date, source, url, meta}.
+    Returns None if the record has no id."""
+    doc = {key: _lookup(record, candidates) for key, candidates in FIELD_MAP.items()}
+    if not doc["id"]:
+        return None
+    if not doc["title"]:
+        doc["title"] = doc["id"]
+    doc["snippet"] = _snippet(doc["text"])
+    used = {f for candidates in FIELD_MAP.values() for f in candidates}
+    doc["meta"] = {k: v for k, v in record.items() if k not in used}
+    return doc
+
+
+class CorpusStore:
+    """Read-only id -> normalized doc lookup backed by an SQLite file.
+
+    The JSONL corpus is normalized once into `<jl_path>.sqlite` (or `db_path`)
+    and only rebuilt when the JSONL file or the field mapping changes, so the
+    corpus never has to fit into memory and restarts are instant."""
+
+    SCHEMA_VERSION = 1
+    BATCH_SIZE = 10000
+
+    def __init__(self, jl_path, db_path=None):
+        self.jl_path = jl_path
+        self.db_path = db_path or jl_path + ".sqlite"
+        self._ready = False
+        self._lock = threading.Lock()
+        self._local = threading.local()
+
+    def _signature(self):
+        stat = os.stat(self.jl_path)
+        return json.dumps({
+            "schema": self.SCHEMA_VERSION,
+            "size": stat.st_size,
+            "mtime": stat.st_mtime_ns,
+            "field_map": FIELD_MAP,
+            "snippet_length": SNIPPET_LENGTH,
+        }, sort_keys=True)
+
+    def _stored_signature(self):
+        if not os.path.exists(self.db_path):
+            return None
+        try:
+            with closing(sqlite3.connect(self.db_path)) as con:
+                row = con.execute("SELECT value FROM meta WHERE key = 'signature'").fetchone()
+            return row[0] if row else None
+        except sqlite3.Error:
+            return None
+
+    def ensure_ready(self):
+        """Build the SQLite store if it is missing or stale. Safe to call repeatedly."""
+        if self._ready:
+            return
+        with self._lock:
+            if self._ready:
+                return
+            if not os.path.exists(self.jl_path):
+                logging.error("Corpus file %s not found (set PUB_PATH); results cannot be displayed",
+                              self.jl_path)
+            else:
+                signature = self._signature()
+                if self._stored_signature() != signature:
+                    self._build(signature)
+                else:
+                    logging.info("Using corpus store %s", self.db_path)
+            self._ready = True
+
+    def _build(self, signature):
+        logging.info("Building corpus store %s from %s (one-time, may take a while)",
+                     self.db_path, self.jl_path)
+        tmp_path = self.db_path + ".tmp"
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        indexed = skipped = with_text = 0
+        with closing(sqlite3.connect(tmp_path)) as con:
+            con.execute("PRAGMA journal_mode = OFF")
+            con.execute("PRAGMA synchronous = OFF")
+            con.execute("CREATE TABLE docs (id TEXT PRIMARY KEY, doc TEXT NOT NULL)")
+            con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
+            batch = []
+            with open(self.jl_path) as jl:
+                for line_no, line in enumerate(jl, start=1):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        doc = normalize_doc(json.loads(line))
+                    except json.JSONDecodeError as e:
+                        logging.warning("%s:%s is not valid JSON: %s", self.jl_path, line_no, e)
+                        doc = None
+                    if doc is None:
+                        skipped += 1
+                        continue
+                    with_text += bool(doc["text"])
+                    # Later records with the same id win, as before.
+                    batch.append((doc["id"], json.dumps(doc)))
+                    if len(batch) >= self.BATCH_SIZE:
+                        con.executemany("INSERT OR REPLACE INTO docs VALUES (?, ?)", batch)
+                        indexed += len(batch)
+                        batch = []
+                        if indexed % 100000 == 0:
+                            logging.info("Indexed %s documents ...", indexed)
+            con.executemany("INSERT OR REPLACE INTO docs VALUES (?, ?)", batch)
+            indexed += len(batch)
+            con.execute("INSERT INTO meta VALUES ('signature', ?)", (signature,))
+            con.commit()
+        # Swap in atomically so a crashed build never leaves a half-written store.
+        os.replace(tmp_path, self.db_path)
+
+        if skipped:
+            logging.warning("Skipped %s records without id (fields tried: %s) in %s",
+                            skipped, FIELD_MAP["id"], self.jl_path)
+        if indexed and not with_text:
+            logging.warning("No document has text (fields tried: %s); set TEXT_FIELD", FIELD_MAP["text"])
+        logging.info("Indexed %s documents from %s", indexed, self.jl_path)
+
+    def _connection(self):
+        con = getattr(self._local, "con", None)
+        if con is None:
+            uri = pathlib.Path(self.db_path).resolve().as_uri() + "?mode=ro"
+            con = sqlite3.connect(uri, uri=True)
+            self._local.con = con
+        return con
+
+    def get(self, docid, default=None):
+        self.ensure_ready()
+        if docid is None or not os.path.exists(self.db_path):
+            return default
+        row = self._connection().execute(
+            "SELECT doc FROM docs WHERE id = ?", (str(docid),)
+        ).fetchone()
+        return json.loads(row[0]) if row else default
 
 
 def doc_list(id_list):
-    return [publication_corpus.get(id) for id in id_list]
+    """Resolve doc ids to corpus documents, dropping ids missing from the corpus."""
+    docs = []
+    for docid in id_list:
+        doc = publication_corpus.get(docid)
+        if doc is None:
+            logging.warning("Doc %s returned by STELLA is not in the local corpus", docid)
+            continue
+        docs.append(doc)
+    return docs
 
 
 def set_result_list(result_type, items, rid):
@@ -188,67 +379,58 @@ def item_details(id):
 
 
 def get_recommendations(docid):
-    doc = publication_corpus.get(docid)
+    """Fetch recommendations for `docid` from the STELLA app and return the
+    top similar documents. Returns [] if recommendations are disabled or the
+    STELLA app has none (e.g. no recommender configured), so the detail page
+    still renders."""
+    if not RECOMMENDATIONS_ENABLED:
+        return []
     params = {"itemid": docid}
     sid = current_sid()
     if sid:
         params["sid"] = sid
-    req = requests.get(STELLA_APP_API + "recommendation", params=params)
+    url = STELLA_APP_API + "recommendation"
+    try:
+        resp = requests.get(url, params=params)
+        resp.raise_for_status()
+        req = resp.json()
+    except (requests.RequestException, ValueError) as e:
+        logging.error("Could not retrieve recommendations for %s from %s: %s", docid, url, e)
+        return []
 
-    req = req.json()
     logging.info(req)
-    remember_sid(req.get("header"))
+    header, body = req.get("header") or {}, req.get("body") or {}
+    remember_sid(header)
+    if not body:
+        return []
 
-    pub_ids = doc_list([v["docid"] for k, v in req.get("body").items()])
-
-    set_result_list("REC_PUB", req.get("body").values(), req.get("header").get("rid"))
-
-    abstract = None
-    if doc["abstract"] is not None:
-        if type(doc["abstract"]) is list:
-            abstract = doc["abstract"][0]
-        else:
-            abstract = doc["abstract"]
-    if abstract is not None:
-        abstract = abstract[:1200] + "..."
-    else:
-        abstract = "nix hier"
-
-    return {
-        "title": doc["title"],
-        "type": "publication",  # doc['type'],
-        "id": docid,
-        "source": "Unidentified",  # doc['publisher'],
-        # 'abstract': (doc['abstract'][0] if type(doc['abstract']) is list else doc['abstract'])[:500] + '...',
-        "abstract": abstract,
-        "similar_items": pub_ids[:3],
-    }
+    set_result_list("REC_PUB", body.values(), header.get("rid"))
+    return doc_list([v["docid"] for v in body.values()])[:3]
 
 
 @app.route("/detail/<string:docid>/<string:result_type>", methods=["GET"])
 def detail(docid, result_type):
     send_feedback(result_type, docid)
 
-    document = publication_corpus.get(docid)
-    recommendations = get_recommendations(docid)
+    document = publication_corpus.get(docid) or {"id": docid, "title": docid, "text": ""}
+    similar_items = get_recommendations(docid)
 
     return render_template(
         "detail.html",
         document=document,
-        recommendations=recommendations,
+        similar_items=similar_items,
+        show_recommendations=RECOMMENDATIONS_ENABLED,
         query=docid,
     )
 
 
+publication_corpus = CorpusStore(PUB_PATH, CORPUS_DB)
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    publication_corpus = {}
-    dataset_corpus = {}
-    if os.path.exists(PUB_PATH):
-        publication_corpus = index_data(PUB_PATH)
-
-    if os.path.exists(DATA_PATH):
-        dataset_corpus = index_data(DATA_PATH)
+    # Build/validate the store before serving, not on the first request.
+    publication_corpus.ensure_ready()
     if port == 5000:
         app.debug = True
 

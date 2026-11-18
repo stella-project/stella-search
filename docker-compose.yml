@@ -19,6 +19,16 @@ services:
           # Config
           STELLA_APP_ADDRESS: "http://stella-app:8000"
           PUB_PATH: "../data/index/publication.jsonl"
-          DATA_PATH: "../data/index/dataset.jsonl"
           SECRET_KEY: "change-me"
           SESSION_TIMEOUT: "300"  # seconds of inactivity before a new STELLA session starts
+          RECOMMENDATIONS: "true"  # set to "false" if the STELLA app has no recommender
+          # Corpus field mapping (comma-separated source fields, first non-empty wins).
+          # Required: id, title, text. Defaults fit data/index/livivo.jsonl.
+          ID_FIELD: "id"
+          TITLE_FIELD: "title"
+          TEXT_FIELD: "abstract,text,contents"
+          # TYPE_FIELD: "type"
+          # DATE_FIELD: "date"
+          # SOURCE_FIELD: "source,publisher"
+          # URL_FIELD: "url"
+          # SNIPPET_LENGTH: "300"  # characters of text shown on the result page
